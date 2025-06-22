@@ -1,0 +1,194 @@
+# @title Define the state machine
+from statemachine import StateMachine, State
+
+#---copied this section of the code from Warm-Up File---
+
+#modifications: 
+#removed inverting tape since not needed for accepting and rejecting 
+#added more funcs for the cycle making the TM follow the requirements!
+class TM_Accept_Or_Reject(StateMachine):
+  idle_state = State(initial = True)
+  read_tape = State()
+  move_right = State()
+  end_state = State(final = True)
+  #adding an accept or reject status
+  is_accepted=False
+  is_rejected=False
+  #0s and 1s counter to check if they have the same weight at the end *^*
+  counter1 = 0
+  counter0 = 0
+
+  start = (
+      idle_state.to(read_tape)
+  )
+
+  cycle = (#we will keep on reading the tape until we get to the end and then accept or reject there :D
+      #check if we start at 0 after start or idle_state
+      read_tape.to(end_state, cond="end_of_tape",after="finalize_tape")
+      |read_tape.to(move_right, cond="is_1st_symbol_0", before="what_is_this")# i want to make the state move to the right and also add to its counter0 like read_tape.to(move_right, cond="is_1st_symbol_0","what_is_this")
+                                                                             #i used before over after since the one we are counting is the current (before moving to the right), if we use after we will count the symbol after moving to the right!
+      |read_tape.to(move_right, cond="is_1st_symbol_1", before="rejection")#reject nevertheless so we dont do the counter anymore
+      |read_tape.to(move_right, cond="is_nth_symbol_ok", before="what_is_this")
+      |move_right.to(read_tape)
+  )
+  def finalize_tape(self):
+    #since it was not instructed how to indicate that the tape is rejected or accepted we put it at the end of the tape after the reading nalang
+    #we write at the end if accepted or not
+    end_flag=False
+    if self.is_rejected==True:
+      self.tape.append("Tape rejected")
+      end_flag=True
+      #print(self.is_rejected)
+      #print("if")
+    elif end_flag==False:
+      #print("elif")
+      if self.counter0==self.counter1:
+        for i in range(self.counter0-1):
+          #print(f'this is the i={i}')
+          #print(f'this is the tape at i ={self.tape[i]}')
+          #print(f'this is the i={i+1}')
+          #print(f'this is the tape at i+ 1 ={self.tape[i+1]}')
+          if self.tape[i+1]=="0":#since self.tape[0]=="start" we have to add 1
+            #print(f'CURRENT I={i+1}')
+            #print(f'CURRENT SELFCOUNTER0={self.counter0-1}')
+
+            if str(i+1)==str(self.counter0-1):
+              end_flag=True
+              #print("in")
+            #i+=1
+          else:
+            self.tape.append("Tape rejected")
+            break
+            #print(self.tape)
+        if end_flag==True:
+          self.is_accepted=True
+          self.tape.append("Tape accepted")
+        #print(self.tape)
+      elif self.counter0!=self.counter1:
+        self.tape.append("Tape rejected")    
+        #print(self.tape)
+
+  def rejection(self):
+    self.is_rejected=True
+    return
+
+  def current_state_start(self):
+    return self.tape[self.head] == "start" 
+
+  def what_is_this(self): #add 1 to the counter of what we just read (is it 0 or 1?)
+    if self.tape[self.head]=="0":
+      self.counter0=self.counter0+1
+    elif self.tape[self.head]=="1":
+      self.counter1=self.counter1+1
+    return
+
+  def is_it_equal(self,tape,head):#checks if the 1s and 0s we have are equal
+    if self.counter0==self.counter1:
+      return True
+    elif self.counter0!=self.counter1: 
+      return False
+
+  def is_1st_symbol_0(self):#checking immediately if the tape starts at 0
+    if self.tape[1]=="0":
+      return True
+    else:
+      return  
+  
+  def is_1st_symbol_1(self):#checking immediately if the tape starts at 1 so we reject it but we still need to read the rest of the tape
+    if self.tape[1]=="1":
+      #print(self.tape)
+      return True
+    else:
+      return
+  
+  def is_nth_symbol_ok(self):
+    if self.head>1: #meaning we are not in the "start" and the 1st symbol ^^
+      return True#we will keep accepting after the 1st symbol since we dont know how many symbols and if the pattern is followed correctly until we have the entire tape
+
+  def on_exit_idle_state(self, tape, head):
+    self.tape = tape
+    self.head = head
+    #print(self.tape) #no need
+    return
+
+  def not_end_of_tape(self):
+    return self.tape[self.head] != "end" #return True if the self has end na, otherwise False siya
+
+  def end_of_tape(self):
+    return self.tape[self.head] == "end" #same here ^^^
+
+  def on_enter_move_right(self):
+    #print(self.head)
+    self.head = self.head + 1
+    #print(self.tape)
+    return
+
+  def on_enter_end_state(self):
+    self.finalize_tape()
+    print(self.tape)
+    return
+#---copied this section of the code from Warm-Up File---
+
+#================TESCASES AND CONTENTS OF THE TAPE============================
+#assuming that I have to make testcases where the tapes should be accepted or nah while using Sir's Template/Warm-Up
+#ACCEPTED
+tape1=["start","0","0","0","0","0","1","1","1","1","1","end"]
+head1=0
+
+#REJECTED
+tape2=["start","1","0","0","0","0","1","1","1","1","1","end"]
+head2=0
+
+#REJECTED
+tape3=["start","0","0","0","0","0","1","1","1","1","end"]
+head3=0
+
+#REJECTED
+tape4=["start","0","1","0","1","0","1","0","1","0","1","end"]
+head4=0
+
+#==============INSTANTIATING THE STATE MACHINE===============================
+# @title Instantiate the state machine
+
+#copying Sir's template in the warm-up file
+# Instantiate the TM
+sm1=TM_Accept_Or_Reject()
+sm2=TM_Accept_Or_Reject()
+sm3=TM_Accept_Or_Reject()
+sm4=TM_Accept_Or_Reject()
+
+img_path = "./TM_accept_reject.png"
+sm1._graph().write_png(img_path)
+
+#================DISPLAYING THE CYCLES OF THE TM=============================
+# @title Display the state machine
+from IPython.display import Image
+
+Image(img_path)
+
+#===============Send start and cycle inputs to the state machine=============
+
+# Write your code here
+
+sm1.send("start", tape1, head1)
+
+while sm1.current_state.final == False:
+  sm1.send("cycle")
+#==========================================
+
+sm2.send("start", tape2, head2)
+
+while sm2.current_state.final == False:
+  sm2.send("cycle")
+#==========================================
+
+sm3.send("start", tape3, head3)
+
+while sm3.current_state.final == False:
+  sm3.send("cycle")
+
+#==========================================
+sm4.send("start", tape4, head4)
+
+while sm4.current_state.final == False:
+  sm4.send("cycle")      
